@@ -2368,6 +2368,27 @@ fn each_plugin_command_has_its_own_menu_row_and_ribbon_button_and_a_disabled_plu
     assert!(matches!(&rows(&app)[3], FileRow::Item(i) if i.label == app.tr("ui.plugin_menu_all_off") && !i.enabled));
 }
 
+/// A `ribbon` slot that names a tab (`{"kind":"ribbon","name":"Model"}`, as in the plugin guide)
+/// says where the command goes, so its button keeps the command's title instead of reading
+/// "Model"; a slot with a name of its own still names the button.
+#[test]
+fn a_ribbon_slot_naming_a_tab_leaves_the_button_its_command_title() {
+    let mut app = SolveApp::new(solidcraft_engine::Session::default(), Default::default());
+    app.plugin_menu.listed = vec![
+        listed("plates", vec![entry("plate", "edit", json!([{"kind":"ribbon","name":"Model"}]))]),
+        listed(
+            "tools",
+            vec![
+                entry("measure", "read", json!([{"kind":"ribbon","name":" inspect "}])),
+                entry("bend", "edit", json!([{"kind":"ribbon","name":"Sheet Metal"}])),
+                entry("tidy", "edit", json!([{"kind":"ribbon","name":"Tidy up"}])),
+            ],
+        ),
+    ];
+    let labels: Vec<String> = ribbon_buttons(&app).into_iter().map(|b| b.label).collect();
+    assert_eq!(labels, ["plates plugin", "measure", "bend", "Tidy up"]);
+}
+
 #[test]
 fn plugin_ribbon_slot_labels_and_model_tab_opt_out() {
     let mut app = SolveApp::new(solidcraft_engine::Session::default(), Default::default());

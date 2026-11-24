@@ -106,8 +106,8 @@ pub(crate) fn set_context(app: &mut SolveApp, ctx: &egui::Context) {
     let _ = (app, ctx);
 }
 /// The ribbon tab a manifest's `ribbon` slot names, when it is one besides Model. Model's Plugins
-/// group already holds every plugin command (and labels it with the slot's name), so a slot that
-/// names Model or no tab is not drawn a second time.
+/// group already holds every plugin command (labelled with a slot name that names no tab, else
+/// the command's title), so a slot that names Model or no tab is not drawn a second time.
 pub(crate) fn ribbon_name(name: &str) -> Option<&'static str> {
     crate::workspace::choosable_tabs().chain(["SKETCH"]).find(|tab| tab.eq_ignore_ascii_case(name.trim())).filter(|tab| *tab != "MODEL")
 }

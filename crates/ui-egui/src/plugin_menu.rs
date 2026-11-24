@@ -908,13 +908,13 @@ fn slot_name(entry: &solidcraft_engine::plugin::Entry, kind: &str) -> Option<Str
         .and_then(|slot| slot["name"].as_str().map(str::trim).filter(|n| !n.is_empty()).map(str::to_owned))
 }
 
-fn slot_label_or_name(entry: &solidcraft_engine::plugin::Entry, kind: &str) -> Option<String> {
+/// The label an entry's `ribbon` slot gives its button: its `label`, else a name of its own
+/// ("Tidy up"). A slot name that names a ribbon tab (`Model`, `Inspect`, `Sheet Metal`, …) says
+/// where the command goes, not what its button is called, so the button keeps the command's title.
+fn ribbon_label(entry: &solidcraft_engine::plugin::Entry) -> Option<String> {
     for slot in &entry.slots {
         match slot {
-            solidcraft_engine::plugin::UiSlot::Ribbon { label: Some(l), .. } if kind == "ribbon" && !l.trim().is_empty() => {
-                return Some(l.trim().to_owned());
-            }
-            solidcraft_engine::plugin::UiSlot::Menu { label: Some(l), .. } if kind == "menu" && !l.trim().is_empty() => {
+            solidcraft_engine::plugin::UiSlot::Ribbon { label: Some(l), .. } if !l.trim().is_empty() => {
                 return Some(l.trim().to_owned());
             }
             _ => {}
@@ -923,7 +923,7 @@ fn slot_label_or_name(entry: &solidcraft_engine::plugin::Entry, kind: &str) -> O
     if !entry.label.trim().is_empty() {
         return Some(entry.label.trim().to_owned());
     }
-    slot_name(entry, kind).filter(|name| kind != "ribbon" || crate::plugin_slots::ribbon_name(name).is_none() && !name.eq_ignore_ascii_case("model"))
+    slot_name(entry, "ribbon").filter(|name| !crate::workspace::choosable_tabs().chain(["SKETCH"]).any(|tab| tab.eq_ignore_ascii_case(name)))
 }
 
 /// Whether this entry appears in the Model tab's Plugins group.
@@ -954,7 +954,8 @@ pub(crate) fn shown(app: &SolveApp, plugin: &Listed) -> bool {
 pub(crate) struct RibbonButton {
     /// `plugin_entry:<plugin id>:<entry name>` or `plugin_group:<plugin id>:<index>`.
     pub(crate) id: String,
-    /// The group's declared label, or the entry's `ribbon` slot name, else its [`command_title`].
+    /// The group's declared label, or the name its `ribbon` slot gives it ([`ribbon_label`]), else
+    /// its [`command_title`].
     pub(crate) label: String,
     /// Its accessible name and hover text: the plugin's name, and the command's when it differs.
     pub(crate) name: String,
@@ -996,7 +997,7 @@ pub(crate) fn ribbon_buttons(app: &SolveApp) -> Vec<RibbonButton> {
             let name = if title == plugin.name { title.clone() } else { format!("{}: {title}", plugin.name) };
             buttons.push(RibbonButton {
                 id: format!("{RIBBON_PREFIX}{}:{}", plugin.id, entry.name),
-                label: slot_label_or_name(entry, "ribbon").unwrap_or(title),
+                label: ribbon_label(entry).unwrap_or(title),
                 name,
                 icon: command_icon(plugin, entry).to_owned(),
             });
